@@ -100,14 +100,22 @@ PERSONALITY_MODS = {
     "general": "Chat casually, answer helpfully."
 }
 
-def build_prompt(user_message: str, intent: str, include_history: list = None):
-    persona = PERSONA_BASE + "\n" + PERSONALITY_MODS.get(intent, "") + "\n\n"
-    # include small chat history for context (optional, we keep lightweight)
-    if include_history:
-        history_text = "\n".join([f"User: {m['user']}\nAssistant: {m['assistant']}" for m in include_history[-6:]])
-        persona += "Here is chat history:\n" + history_text + "\n\n"
+def build_prompt(user_message, intent, include_history):
+    persona = PERSONA_BASE + "\n" + PERSONALITY_MODS.get(intent, "")
+
+    # include small chat history for context (optional)
+    if include_history and st.session_state.chat_history:
+        history_text = ""
+        for m in st.session_state.chat_history:
+            u = m.get("user", "")
+            a = m.get("assistant", "")
+            if u or a:
+                history_text += f"User: {u}\nAssistant: {a}\n"
+        persona += "Here is our recent chat history:\n" + history_text + "\n"
+
     persona += f"User: {user_message}\nAssistant:"
     return persona
+
 
 # Post-processing: add mowayya flavour (your visible logic)
 def add_mowayya_flavour(text: str):
