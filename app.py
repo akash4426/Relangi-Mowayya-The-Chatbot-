@@ -108,7 +108,7 @@ def call_gemini(prompt: str, intent: str):
         return local_brain(prompt, intent)
 
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
         response = model.generate_content(prompt)
         text = response.text.strip()
 
