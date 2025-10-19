@@ -2,13 +2,6 @@ import streamlit as st
 import google.generativeai as genai
 import os
 import random
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader, TextLoader
-from langchain_community.vectorstores import FAISS
-from langchain_google_genai import GoogleGenerativeAIEmbeddings, GoogleGenerativeAI
-from langchain.chains import ConversationalRetrievalChain
-from langchain.memory import ConversationBufferMemory
-import tempfile
 
 # ======================
 # 1️⃣ APP SETUP
@@ -28,10 +21,10 @@ else:
 # ======================
 if "history" not in st.session_state:
     st.session_state.history = []
+
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-if "vectorstore" not in st.session_state:
-    st.session_state.vectorstore = None  # store uploaded document embeddings
+
 
 # ======================
 # 3️⃣ YOUR CREATIVE PARTS 🎨
@@ -49,6 +42,7 @@ def detect_intent(message: str):
     else:
         return "general"
 
+
 # --- (b) Personality Core ---
 PERSONA_BASE = """
 You are Mowayya — a Tenglish-speaking (Telugu+English) student helper and close friend.
@@ -57,15 +51,17 @@ You mix humor, warmth, and emotion. You’re never too formal.
 """
 
 PERSONALITY_MODS = {
-    "education": "Explain things in an easy Tenglish style, like explaining to a friend during group study. Be detailed and friendly.",
+    "education": "Explain things in an easy Tenglish style, like explaining to a friend during group study.But explain things in detail and should be easier to understand for the user.",
     "motivation": "Use Telugu-style motivation like a best friend cheering up another.",
     "friendly": "Be playful, tease a bit, but always be caring.",
-    "general": "Chat casually like a Telugu college student, with humor and comfort.",
+    "general": "Just chat casually like a Telugu college student.Try to generate fun and engaging responses.And make the user. feel comfortable while chatting with you.",
 }
+
 
 # --- (c) Smart Prompt Builder ---
 def build_prompt(user_message, intent):
     persona = PERSONA_BASE + "\n" + PERSONALITY_MODS.get(intent, "")
+    # Keep last 5 chats only
     context_history = st.session_state.chat_history[-5:]
 
     if context_history:
@@ -80,8 +76,10 @@ def build_prompt(user_message, intent):
     persona += f"User: {user_message}\nAssistant:"
     return persona
 
-# --- (d) Local Brain (offline mode) ---
+
+# --- (d) Local Fallback Brain ---
 def local_brain(message, intent):
+    """Your custom local responses if Gemini key not available"""
     replies = {
         "education": [
             "Arey chadivey raa, concept chinna chinna steps lo explain chestha 😄",
@@ -102,14 +100,19 @@ def local_brain(message, intent):
     }
     return random.choice(replies.get(intent, replies["general"]))
 
+
 # --- (e) Gemini Call + Post Processing ---
 def call_gemini(prompt: str, intent: str):
     if not GEMINI_API_KEY:
+        # Offline fallback
         return local_brain(prompt, intent)
+
     try:
         model = genai.GenerativeModel("gemini-2.5-flash")
         response = model.generate_content(prompt)
         text = response.text.strip()
+
+        # Add Tenglish flavor (your signature style)
         suffixes = ["Manishi ante ne manchodu","Ey ra bonchesava","raa 😎", "bujji ❤️", "machaa 😂", "anna 💪", "le ra cheer up ☀️"]
         if not text.endswith(tuple(["!", ".", "?", "😅", "😂", "😎"])):
             text += "..."
@@ -118,63 +121,31 @@ def call_gemini(prompt: str, intent: str):
     except Exception as e:
         return f"😅 Error vachhindi raa: {e}"
 
-# ======================
-# 4️⃣ FILE UPLOAD FEATURE 📂
-# ======================
-st.subheader("📚 Upload a file for study/explanation (PDF or TXT)")
-uploaded_file = st.file_uploader("Choose a file", type=["pdf", "txt"])
-
-if uploaded_file:
-    with st.spinner("Reading and indexing your file..."):
-        temp = tempfile.NamedTemporaryFile(delete=False)
-        temp.write(uploaded_file.read())
-        temp_path = temp.name
-
-        # Extract text
-        if uploaded_file.name.endswith(".pdf"):
-            loader = PyPDFLoader(temp_path)
-        else:
-            loader = TextLoader(temp_path)
-
-        docs = loader.load()
-        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-        split_docs = splitter.split_documents(docs)
-
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-        st.session_state.vectorstore = FAISS.from_documents(split_docs, embeddings)
-
-        st.success("✅ File processed! Now you can ask anything from it.")
 
 # ======================
-# 5️⃣ CHAT UI
+# 4️⃣ CHAT UI
 # ======================
 user_input = st.chat_input("Type your message raa...")
 
 if user_input:
     st.session_state.history.append({"role": "user", "content": user_input})
     st.session_state.chat_history.append({"user": user_input})
+
+    # detect user intent
     intent = detect_intent(user_input)
 
-    # If file uploaded → use RAG
-    if st.session_state.vectorstore:
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-        retriever = st.session_state.vectorstore.as_retriever(search_kwargs={"k": 3})
-        llm = GoogleGenerativeAI(model="gemini-pro")
-        memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-        qa_chain = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, memory=memory)
-        response = qa_chain({"question": user_input})
-        reply = response["answer"]
-        reply += " 😎 (Based on your uploaded file!)"
-    else:
-        prompt = build_prompt(user_input, intent)
-        reply = call_gemini(prompt, intent)
+    # build prompt
+    prompt = build_prompt(user_input, intent)
+
+    # call model (your hybrid logic)
+    reply = call_gemini(prompt, intent)
 
     st.session_state.history.append({"role": "assistant", "content": reply})
     st.session_state.chat_history[-1]["assistant"] = reply
 
 # ======================
-# 6️⃣ DISPLAY CHAT
+# 5️⃣ DISPLAY CHAT
 # ======================
 for chat in st.session_state.history:
     with st.chat_message(chat["role"]):
-        st.markdown(chat["content"])
+        st.markdown(chat["content"]) 
