@@ -3,11 +3,10 @@ import google.generativeai as genai
 import os
 import random
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.document_loaders import PyPDFLoader, TextLoader
-from langchain.vectorstores import FAISS
-from langchain.embeddings import GoogleGenerativeAIEmbeddings
+from langchain_community.document_loaders import PyPDFLoader, TextLoader
+from langchain_community.vectorstores import FAISS
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, GoogleGenerativeAI
 from langchain.chains import ConversationalRetrievalChain
-from langchain.llms import GoogleGenerativeAI
 from langchain.memory import ConversationBufferMemory
 import tempfile
 
