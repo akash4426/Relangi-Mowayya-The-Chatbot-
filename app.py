@@ -6,7 +6,7 @@ import random
 # ======================
 # 1️⃣ APP SETUP
 # ======================
-st.set_page_config(page_title="🎓 Mowayya – Your EduFriend", page_icon="🤝", layout="centered")
+st.set_page_config(page_title="🎓 Relangi Mowayya – Your EduFriend", page_icon="🤖", layout="centered")
 st.title("🎓 Mowayya – Your EduFriend")
 
 # Initialize Gemini
@@ -113,7 +113,7 @@ def call_gemini(prompt: str, intent: str):
         text = response.text.strip()
 
         # Add Tenglish flavor (your signature style)
-        suffixes = ["raa 😎", "bujji ❤️", "machaa 😂", "anna 💪", "le ra cheer up ☀️"]
+        suffixes = ["Manishi ante ne manchodu","Ey ra bonchesava","raa 😎", "bujji ❤️", "machaa 😂", "anna 💪", "le ra cheer up ☀️"]
         if not text.endswith(tuple(["!", ".", "?", "😅", "😂", "😎"])):
             text += "..."
         text += " " + random.choice(suffixes)
