@@ -6,7 +6,7 @@ import random
 # ======================
 # 1️⃣ APP SETUP
 # ======================
-st.set_page_config(page_title="🎓 Relangi Mowayya – Your EduFriend", page_icon="🤖", layout="centered")
+st.set_page_config(page_title="🎓 Relangi Mowayya - Ey ra bonchesava", page_icon="🤖", layout="centered")
 st.title("🎓 Relangi Mowayya – Andharivadu")
 
 # Initialize Gemini
