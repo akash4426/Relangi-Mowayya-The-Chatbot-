@@ -308,7 +308,7 @@ if user_input:
     # call model
     with st.chat_message("assistant"):
         with st.spinner("Mowayya alochisthunnadu... 🤔"):
-            reply = call_f(prompt, intent)
+            reply = call_gemini(prompt, intent)
             st.markdown(reply)
 
     st.session_state.history.append({"role": "assistant", "content": reply})
